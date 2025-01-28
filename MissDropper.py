@@ -12,9 +12,9 @@ class MissDropper(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = np.asarray(X, dtype=object)
-        X = np.atleast_2d(X).T if X.ndim == 1 else X
-
-        rows_with_none = np.any(X == self.token_for_missing, axis=1)
-
-        return X[~rows_with_none]
+        if isinstance(X, pd.DataFrame):
+            return X.dropna()
+        elif isinstance(X, np.ndarray):
+            # Convert to DataFrame to drop missing values
+            df = pd.DataFrame(X)
+            return df.dropna().to_numpy()

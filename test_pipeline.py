@@ -7,10 +7,11 @@ from missingvalue import MissingValueChecker
 from outlier import OutlierHandler
 from alignTransformer import AlignTransformer
 from sklearn.preprocessing import Normalizer, StandardScaler, MinMaxScaler
+from MissDropper import MissDropper
 
 # Create test data
 df = pd.DataFrame({
-    "col 1": [1, 2, np.nan, 4, 5, 6, -7, 8, 9, 1000], 
+    "col 1": [1, 2, 4, np.nan, 5, 6, -7, 8, 9, 1000], 
     "col 2": ["cat", "dog", None, "cat", "dog", "dog", "cat", "dog", "cat", "dog"],
 })
 
@@ -32,9 +33,16 @@ preprocessor = ColumnTransformer(
     remainder="passthrough"
 )
 
+pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("dropper", MissDropper())
+
+])
 
 if __name__ == "__main__":
     print("============== Original Data ==============")
     print(df)
     print("\n============== Transformed Data ==============")
     print(preprocessor.fit_transform(df))
+    print("\n============== Dropped NaN Data ==============")
+    print(pipeline.fit_transform(df))
