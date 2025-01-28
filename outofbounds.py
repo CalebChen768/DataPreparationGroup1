@@ -44,6 +44,9 @@ class OutOfBoundsChecker(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        X_columns = None
+        if isinstance(X, pd.DataFrame):
+            X_columns = X.columns
         X = np.asarray(X, dtype=object)
         X = np.atleast_2d(X).T if X.ndim == 1 else X
         mask = np.zeros_like(X, dtype=bool)
@@ -64,7 +67,7 @@ class OutOfBoundsChecker(BaseEstimator, TransformerMixin):
                     "No lower_bound, upper_bound, or allowed_set provided. No out-of-bounds checks performed.",
                     UserWarning
                 )
-                return X
+                return X if X_columns is None else pd.DataFrame(X, columns=X_columns)
 
         mask = np.any(mask, axis=1)
 
@@ -79,11 +82,11 @@ class OutOfBoundsChecker(BaseEstimator, TransformerMixin):
                         UserWarning
                     )
                     X[mask] = None
-                    return X
+                    return X if X_columns is None else pd.DataFrame(X, columns=X_columns)
                 elif self.default_behavior == "raise_error":
                     raise ValueError(f"{num_out_of_bounds} out-of-bounds values detected in data.")
 
-        return X 
+        return X if X_columns is None else pd.DataFrame(X, columns=X_columns)
 
 
         
