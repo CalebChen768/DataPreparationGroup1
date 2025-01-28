@@ -21,7 +21,11 @@ def add_typo_to_text(text, typo_rate=0.1):
             char_list = list(word)
             if len(char_list) > 1:
                 i = random.randint(0, len(char_list) - 1)
-                char_list[i] = random.choice("abcdefghijklmnopqrstuvwxyz")
+                # filter out special characters
+                if (char_list[i] in [',', '.', '!', '?', '-', ':', ';', '(', ')', '"', "'"]):
+                    pass
+                else:
+                    char_list[i] = random.choice("abcdefghijklmnopqrstuvwxyz")
             word = ''.join(char_list)
         text_with_typos.append(word)
     return ' '.join(text_with_typos)

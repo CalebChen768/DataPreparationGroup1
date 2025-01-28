@@ -12,7 +12,7 @@ def add_errors(data):
     with_errors = data.copy()
 
     with_errors = MissingValues(column='verified_purchase', fraction=.4, missingness='MAR').transform(with_errors)
-    with_errors = SwappedValues(column='title', fraction=.2, sampling='MAR').transform(with_errors)
+    # with_errors = SwappedValues(column='title', fraction=.2, sampling='MAR').transform(with_errors)
     with_errors = Scaling(column='rating', fraction=.2, sampling='MAR').transform(with_errors)
     with_errors = add_typo_to_text_column(with_errors, "text")
 
