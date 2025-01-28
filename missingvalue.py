@@ -93,8 +93,8 @@ class MissingValueChecker(BaseEstimator, TransformerMixin):
         if self.strategy == "most_common":
             fill_value = self._most_common(col[~mask])
         elif self.strategy == "drop":
-            # change mask from NaN to None
-            return col.mask(mask, None)
+            # drop mask
+            return col.dropna()
         elif self.strategy == "custom" and callable(self.custom_func):
             fill_value = self.custom_func(col[~mask])
         else:
