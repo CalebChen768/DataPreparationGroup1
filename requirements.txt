@@ -6,3 +6,6 @@ jenga
 setuptools
 transformers
 torch
+fasttext
+nltk
+requests
