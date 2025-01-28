@@ -6,7 +6,7 @@ from sklearn.pipeline import Pipeline
 from missingvalue import MissingValueChecker
 from outlier import OutlierHandler
 from alignTransformer import AlignTransformer
-from sklearn.preprocessing import Normalizer, StandardScaler, MinMaxScaler
+from sklearn.preprocessing import Normalizer, OneHotEncoder, StandardScaler, MinMaxScaler
 from MissDropper import MissDropper
 from outofbounds import OutOfBoundsChecker
 
@@ -31,6 +31,7 @@ preprocessor = ColumnTransformer(
             ("missing_values", MissingValueChecker(data_type="categorical", strategy="drop")),
             ("bound_constrain", OutOfBoundsChecker(allowed_set=["cat", "dog"])),
             ("align_index", AlignTransformer(original_index=df.index)),
+            ("onehot",OneHotEncoder(categories=[list(set(df[i].unique())-{None, np.nan}) for i in ["col 2"]], handle_unknown="ignore"))
         ]), ["col 2"]),
     ],
     remainder="passthrough"
@@ -38,7 +39,7 @@ preprocessor = ColumnTransformer(
 
 pipeline = Pipeline([
     ("preprocessor", preprocessor),
-    ("dropper", MissDropper())
+    ("dropper", MissDropper()),
 
 ])
 
