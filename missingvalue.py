@@ -12,8 +12,8 @@ class MissingValueChecker(BaseEstimator, TransformerMixin):
         """
         Parameters:
         data_type (str): Data type, "numerical" or "categorical".
-        strategy (str): Missing value handling strategy. For numerical data, supports "mean", "most_common", or "custom";
-                for categorical data, supports "most_common" or "custom".
+        strategy (str): Missing value handling strategy. For numerical data, supports "mean", "most_common", "drop" or "custom";
+                for categorical data, supports "most_common", "drop" or "custom".
         custom_func (callable): Custom function to handle missing values (required when strategy="custom").
         """
         self.data_type = data_type
@@ -27,10 +27,10 @@ class MissingValueChecker(BaseEstimator, TransformerMixin):
         # Check for valid input
         if self.data_type not in ["numerical", "categorical"]:
             raise ValueError("data_type must be 'numerical' or 'categorical'")
-        if self.data_type == "numerical" and self.strategy not in ["mean", "most_common", "custom"]:
-            raise ValueError("Numerical strategy must be 'mean', 'most_common', or 'custom'")
-        if self.data_type == "categorical" and self.strategy not in ["most_common", "custom"]:
-            raise ValueError("Categorical strategy must be 'most_common' or 'custom'")
+        if self.data_type == "numerical" and self.strategy not in ["mean", "most_common", "drop", "custom"]:
+            raise ValueError("Numerical strategy must be 'mean', 'most_common', 'drop' or 'custom'")
+        if self.data_type == "categorical" and self.strategy not in ["most_common", "drop", "custom"]:
+            raise ValueError("Categorical strategy must be 'most_common', 'drop' or 'custom'")
 
     def fit(self, X, y=None):
         return self
@@ -72,6 +72,13 @@ class MissingValueChecker(BaseEstimator, TransformerMixin):
             fill_value = col[~mask].mean()  # Mean of non-missing values
         elif self.strategy == "most_common":
             fill_value = self._most_common(col[~mask])
+        elif self.strategy == "drop":
+            # change mask from NaN to None
+            # print(col)
+            # print(mask)
+            # col = col.astype(object)
+            # return col.mask(mask, None)
+            return col.dropna()
         elif self.strategy == "custom" and callable(self.custom_func):
             fill_value = self.custom_func(col[~mask])
         else:
@@ -85,6 +92,9 @@ class MissingValueChecker(BaseEstimator, TransformerMixin):
         """
         if self.strategy == "most_common":
             fill_value = self._most_common(col[~mask])
+        elif self.strategy == "drop":
+            # change mask from NaN to None
+            return col.mask(mask, None)
         elif self.strategy == "custom" and callable(self.custom_func):
             fill_value = self.custom_func(col[~mask])
         else:
