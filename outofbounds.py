@@ -1,7 +1,7 @@
 import warnings
 from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
-
+import pandas as pd
 from abc import ABC, abstractmethod
 
 class OutOfBoundsHandler(ABC):
@@ -17,24 +17,26 @@ class OutOfBoundsHandler(ABC):
         pass
 
 class OutOfBoundsChecker(BaseEstimator, TransformerMixin):
-    def __init__(self, lower_bound=None, upper_bound=None, on_out_of_bounds=None, default_behavior="drop"):
+    def __init__(self, lower_bound=None, upper_bound=None, allowed_set=None, on_out_of_bounds=None, default_behavior="to_None"):
         """
         lower_bound (float or None): Lower bound. If None, no lower bound check.
         upper_bound (float or None): Upper bound. If None, no upper bound check.
+        allowed_set (set or None): A set of allowed values. If provided, overrides bounds checks.
         on_out_of_bounds (OutOfBoundsHandler or None): An instance of a class implementing the OutOfBoundsHandler interface.
         If provided, this function overrides the `default_behavior`.
-        default_behavior (str): Default action when out-of-bounds data is detected, support 'drop'or 'raise_error'
+        default_behavior (str): Default action when out-of-bounds data is detected, supports 'to_None' or 'raise_error'.
         Ignored if `on_out_of_bounds` is specified.
         """
 
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+        self.allowed_set = allowed_set
         self.on_out_of_bounds = on_out_of_bounds
         self.default_behavior = default_behavior
 
-        if self.default_behavior not in ["drop", "raise_error"]:
-            raise ValueError("default_behavior must be either 'drop' or 'raise_error'")
-        
+        if self.default_behavior not in ["to_None", "raise_error"]:
+            raise ValueError("default_behavior must be either 'to_None' or 'raise_error'")
+
         if on_out_of_bounds is not None and not isinstance(on_out_of_bounds, OutOfBoundsHandler):
             raise TypeError("on_out_of_bounds must implement the OutOfBoundsHandler interface.")
 
@@ -42,34 +44,46 @@ class OutOfBoundsChecker(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        X = np.asarray(X)
-        mask = np.zeros_like(X, dtype=bool) 
+        X = np.asarray(X, dtype=object)
+        X = np.atleast_2d(X).T if X.ndim == 1 else X
+        mask = np.zeros_like(X, dtype=bool)
 
-        if self.lower_bound is not None:
-            mask |= X < self.lower_bound
+        if self.allowed_set is not None:
+            # Check if values are not in the allowed set
+            mask |= ~np.isin(X, list(self.allowed_set))
+        else:
+            # Check bounds if allowed_set is not provided
+            if self.lower_bound is not None:
+                mask |= X < self.lower_bound
 
-        if self.upper_bound is not None:
-            mask |= X > self.upper_bound
+            if self.upper_bound is not None:
+                mask |= X > self.upper_bound
 
-        if self.lower_bound is None and self.upper_bound is None:
-            warnings.warn(
-                "No lower_bound or upper_bound provided. No out-of-bounds checks performed.",
-                UserWarning
-            )
-            return X
+            if self.lower_bound is None and self.upper_bound is None:
+                warnings.warn(
+                    "No lower_bound, upper_bound, or allowed_set provided. No out-of-bounds checks performed.",
+                    UserWarning
+                )
+                return X
+
+        mask = np.any(mask, axis=1)
 
         num_out_of_bounds = np.sum(mask)
         if num_out_of_bounds > 0:
             if self.on_out_of_bounds:
                 return self.on_out_of_bounds.on_out_of_bounds(X, mask)
             else:
-                if self.default_behavior == "drop":
+                if self.default_behavior == "to_None":
                     warnings.warn(
                         f"{num_out_of_bounds} out-of-bounds values detected. Dropping them.",
                         UserWarning
                     )
-                    return X[~mask]
+                    X[mask] = None
+                    return X
                 elif self.default_behavior == "raise_error":
                     raise ValueError(f"{num_out_of_bounds} out-of-bounds values detected in data.")
 
-        return X
+        return X 
+
+
+        
