@@ -1,11 +1,12 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
-from collections import Counter
 import pandas as pd
+from collections import Counter
+
 
 class MissingValueChecker(BaseEstimator, TransformerMixin):
     def __init__(self, 
-                 data_type="numerical",  # 明确传入数据类型：numerical 或 categorical
+                 data_type="numerical",  # numerical or categorical
                  strategy=None, 
                  custom_func=None):
         """
@@ -35,63 +36,66 @@ class MissingValueChecker(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        isDataFrame = False
+        # Check if input is DataFrame
         if isinstance(X, pd.DataFrame):
-            columns = X.columns
-            isDataFrame = True
-        # Ensure X is a numpy array with object type to handle mixed data types
-        X = np.asarray(X)
-
-        if np.issubdtype(X.dtype, np.number):
-            mask = np.isnan(X)
+            # Apply transformation column by column
+            result = X.apply(self._transform_column, axis=0)
+            # print(result)
+            return result
+        elif isinstance(X, pd.Series):
+            # If a single Series is passed, treat it as a single column
+            # print(result)
+            return self._transform_column(X)
         else:
-            mask = np.isin(X, [None, ""])
+            raise TypeError("Input must be a pandas DataFrame or Series.")
 
-        # Handle missing values based on strategy
-        if self.data_type == "numerical":
-            result = self._handle_numerical(X, mask)
-        elif self.data_type == "categorical":
-            result = self._handle_categorical(X, mask)
-            # Raise error if data type is not valid
-        else:
-            result = None
-            raise ValueError("Invalid data_type provided.")
+    def _transform_column(self, col):
+        """
+        Apply missing value handling to a single column.
+        """
+        mask = col.isin(self.missing_value) | col.isnull()  # Detect missing values
 
-        # Convert back to DataFrame if input was DataFrame       
-        if isDataFrame:
-            print(pd.DataFrame(result, columns=columns))
-            return pd.DataFrame(result, columns=columns)
-        return result
+        if col.dtype.kind in "bifc":  # If numerical data
+            if self.data_type != "numerical":
+                raise ValueError(f"Column {col.name} is numerical, but data_type='categorical' was provided.")
+            return self._handle_numerical(col, mask)
+        else:  # If categorical data
+            if self.data_type != "categorical":
+                raise ValueError(f"Column {col.name} is categorical, but data_type='numerical' was provided.")
+            return self._handle_categorical(col, mask)
 
-    def _handle_numerical(self, X, mask):
+    def _handle_numerical(self, col, mask):
+        """
+        Handle missing values for a numerical column.
+        """
         if self.strategy == "mean":
-            fill_value = np.nanmean(X.astype(float))  # Ensure numerical calculation
+            fill_value = col[~mask].mean()  # Mean of non-missing values
         elif self.strategy == "most_common":
-            fill_value = self._most_common(X[~mask])
+            fill_value = self._most_common(col[~mask])
         elif self.strategy == "custom" and callable(self.custom_func):
-            fill_value = self.custom_func(X[~mask].astype(float))
+            fill_value = self.custom_func(col[~mask])
         else:
             raise ValueError("Invalid numerical strategy or missing custom function.")
 
-        X[mask] = fill_value
-        return X
+        return col.fillna(fill_value)
 
-    def _handle_categorical(self, X, mask):
+    def _handle_categorical(self, col, mask):
+        """
+        Handle missing values for a categorical column.
+        """
         if self.strategy == "most_common":
-            fill_value = self._most_common(X[~mask])
+            fill_value = self._most_common(col[~mask])
         elif self.strategy == "custom" and callable(self.custom_func):
-            fill_value = self.custom_func(X[~mask])
+            fill_value = self.custom_func(col[~mask])
         else:
             raise ValueError("Invalid categorical strategy or missing custom function.")
 
-        X[mask] = fill_value
-        return X
+        return col.fillna(fill_value)
 
     def _most_common(self, values):
         """
-        Helper function to calculate the most common value in an array.
+        Helper function to calculate the most common value in a column.
         """
-        from collections import Counter
         counter = Counter(values)
         most_common_value, _ = counter.most_common(1)[0]
         return most_common_value
