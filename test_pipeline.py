@@ -16,6 +16,7 @@ from functools import partial
 df = pd.DataFrame({
     "col_1": [1, 2, 4, np.nan, 5, 6, -7, 8, 9, 1000, 5], 
     "col_2": ["cat", "dog", None, "cat", "dog", "dog", "cat", "dog", "cat", "dog", "mice"],
+    "col_3": ["Y","N","Y","N","Y","N","Y","N","Y","N","Y"],
 })
 
 # Create a pipeline
@@ -35,9 +36,21 @@ preprocessor = ColumnTransformer(
             ("align_index", AlignTransformer(original_index=df.index)),
             ("onehot",OneHotEncoder(categories=[list(set(df[i].unique())-{None, np.nan}) for i in ["col_2"]], handle_unknown="ignore"))
         ]), ["col_2"]),
+
+        ("cat2", Pipeline([
+            ("onehot",OneHotEncoder(categories=[list(set(df[i].unique())-{None, np.nan}) for i in ["col_3"]], handle_unknown="ignore"))
+        ]), ["col_3"]),
+            
     ],
     remainder="passthrough"
 )
+
+pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor)), validate=False)),
+    ("dropper", MissDropper()),
+])
+
 
 def to_dataframe(X, transformer, feature_names):
     """
@@ -63,7 +76,7 @@ def get_final_columns(column_transformer):
         if isOnehot:
             # OneHotEncoder
             for col in columns:
-                unique_categories = [list(set(df[i].unique())-{None, np.nan}) for i in ["col_2"]][0]
+                unique_categories = [list(set(df[i].unique())-{None, np.nan}) for i in [col]][0]
                 print("unique_categories", unique_categories)
                 generated_col_names = [f"{col}_{category}" for category in unique_categories]
                 final_columns.extend(generated_col_names)
@@ -75,12 +88,6 @@ def get_final_columns(column_transformer):
 
 
 
-pipeline = Pipeline([
-    ("preprocessor", preprocessor),
-    ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor)), validate=False)),
-    ("dropper", MissDropper()),
-
-])
 
 if __name__ == "__main__":
     print("============== Original Data ==============")
