@@ -3,15 +3,8 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from missingvalue import MissingValueChecker
-from outlier import OutlierHandler
-from alignTransformer import AlignTransformer
-from sklearn.preprocessing import Normalizer, OneHotEncoder, StandardScaler, MinMaxScaler, FunctionTransformer
-from MissDropper import MissDropper
-from outofbounds import OutOfBoundsChecker
-from functools import partial
-from text_Gibberish import GibberishDetector
-from scaleAdjust import ScaleAdjust
+from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
+from ErrorHandler import *
 
 # Create test data
 df = pd.DataFrame({
