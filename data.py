@@ -1,6 +1,6 @@
 from datasets import load_dataset
 import pandas as pd
-from errors import add_missing_values, add_outliers, add_typo_to_text_column  
+from errors import add_missing_values, add_outliers, add_typo_to_text_column, add_gibberish_to_text_column
 from jenga.corruptions.generic import MissingValues, SwappedValues
 from jenga.corruptions.numerical import Scaling
 import html
@@ -20,16 +20,20 @@ def load_ratebeer(path="./sampled_dataframe.csv"):
     df['review/palate'] = df['review/palate'].str.split('/').str[0]
     df['review/taste'] = df['review/taste'].str.split('/').str[0]
     df['review/overall'] = df['review/overall'].str.split('/').str[0]
+
     df['review/appearance'] = df['review/appearance'].astype(float)
     df['review/aroma'] = df['review/aroma'].astype(float)
     df['review/palate'] = df['review/palate'].astype(float)
     df['review/taste'] = df['review/taste'].astype(float)
     df['review/overall'] = df['review/overall'].astype(float)
+    
     df['beer/ABV'] = df['beer/ABV'].replace("-", np.nan)
+    df['beer/ABV'] = df['beer/ABV'].astype(float)
+    
     df['beer/style'] = df['beer/style'].apply(html.unescape)
     df['beer/name'] = df['beer/name'].apply(html.unescape)
     df['review/time'] = pd.to_datetime(df['review/time'], unit='s')
-    df['beer/ABV'] = df['beer/ABV'].astype(float)
+    
 
     return df
 
@@ -58,6 +62,12 @@ class DataErrorAdder:
                     with_errors, 
                     error['column'], 
                     error['typo_rate']
+                )
+            elif error['type'] == 'gibberish':
+                with_errors = add_gibberish_to_text_column(
+                    with_errors,
+                    error['column'],
+                    error['gibberish_rate']
                 )
         return with_errors
 

@@ -30,6 +30,21 @@ def add_typo_to_text(text, typo_rate=0.1):
         text_with_typos.append(word)
     return ' '.join(text_with_typos)
 
+def add_gibberish_to_text_column(X, column_name, gibberish_rate=0.05):
+    X = X.copy()
+    row_count = X.shape[0]
+    sample_size = int(row_count * gibberish_rate)  
+    sampled_indices = X.sample(n=sample_size, random_state=42).index
+
+    no_ins_count = 0
+
+    for idx in sampled_indices:
+        if isinstance(X.loc[idx, column_name], str):
+            X.loc[idx, column_name] = add_typo_to_text(X.loc[idx, column_name], typo_rate=0.5)
+        else :
+            no_ins_count += 1
+    return X
+
 def add_typo_to_text_column(X, column_name, typo_rate=0.1):
     X_noisy = X.copy()
     X_noisy[column_name] = X_noisy[column_name].apply(lambda x: add_typo_to_text(x, typo_rate) if isinstance(x, str) else x)

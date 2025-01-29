@@ -127,9 +127,10 @@ class GibberishDetector(BaseEstimator, TransformerMixin):
 
 
 class TwoStepGibberishDetector(BaseEstimator, TransformerMixin):
-    def __init__(self, columns=["text"], threshold=0.62, max_candidates=5):
+    def __init__(self, threshold=0.62, max_candidates=5):
         nltk.download('words')
-        self.columns = columns
+        # self.columns = columns
+        
         self.threshold = threshold
         self.max_candidates = max_candidates
         self.model_path = 'lid.176.bin'
@@ -149,8 +150,8 @@ class TwoStepGibberishDetector(BaseEstimator, TransformerMixin):
         else:
             print(f"Model '{self.model_path}' already exists.")
 
-    def _clean_text(text):
-    
+    def _clean_text(self, text):
+        
         text = text.lower()  
         text = text.translate(str.maketrans('', '', string.punctuation)) 
 
@@ -160,23 +161,33 @@ class TwoStepGibberishDetector(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
+        # X.dropna(axis=0, inplace=True)
+        self.columns = X.columns
         row_count = X.shape[0]
         for column in self.columns:
             not_en_index = []
             col_index = X.columns.get_loc(column)
             for i in range(0, row_count):
+                if(pd.isnull(X.iloc[i, col_index])):
+                    continue
+                # print("processing row:", i)
                 target = self._clean_text(X.iloc[i, col_index])
+            
                 predictions = self.model_d.predict(target)
                 language = predictions[0][0].split('__label__')[1]
                 confidence = predictions[1][0]
-
+                # print("Confidence:", confidence)
                 if confidence < self.threshold:
+                    # if(i/100==0):
+                    #     print("Processing row:", i)
+                    #     print(target)
                     tokens = target.split()
                     if len(tokens) < 7:
                         word_count = 0
                         for token in tokens:
                             token = token.translate(str.maketrans('', '', string.punctuation))
                             if token.lower() in self.english_vocab:
+                                # print("Go to set compare")
                                 word_count += 1
                             if word_count > len(tokens) - word_count:
                                 language = "en"
@@ -187,7 +198,9 @@ class TwoStepGibberishDetector(BaseEstimator, TransformerMixin):
 
                 if language != "en":
                     not_en_index.append(i)
-            X[not_en_index][column] = np.nan
+            X.loc[not_en_index, column] = np.nan
+            
+        X.dropna(axis=0, inplace=True)
 
         return X
 

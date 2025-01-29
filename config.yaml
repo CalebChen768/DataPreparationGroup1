@@ -1,13 +1,37 @@
 # Example config for experiment
 errors:
   - type: missing_values
-    column: 'verified_purchase'
-    fraction: 0.4
+    column: 'review/appearance'
+    fraction: 0.1
     missingness: 'MAR'
+  - type: missing_values
+    column: 'review/aroma'
+    fraction: 0.1
+    missingness: 'MAR'
+  # - type: missing_values
+  #   column: 'review/palate'
+  #   fraction: 0.1
+  #   missingness: 'MAR'
+  # - type: missing_values
+  #   column: 'review/taste'
+  #   fraction: 0.1
+  #   missingness: 'MAR'
+  
   - type: scaling
-    column: 'rating'
-    fraction: 0.2
+    column: 'review/palate'
+    fraction: 0.1
     sampling: 'MAR'
+  - type: scaling
+    column: 'review/taste'
+    fraction: 0.1
+    sampling: 'MAR'
+
   - type: typo
-    column: 'text'
-    typo_rate: 0.1
+    column: 'review/text'
+    typo_rate: 0.05
+    
+  # - type: gibberish
+  #   column: 'review/text'
+  #   gibberish_rate: 0.02
+
+# review/appearance,review/aroma,review/palate,review/taste
