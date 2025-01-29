@@ -1,0 +1,13 @@
+# Example config for experiment
+errors:
+  - type: missing_values
+    column: 'verified_purchase'
+    fraction: 0.4
+    missingness: 'MAR'
+  - type: scaling
+    column: 'rating'
+    fraction: 0.2
+    sampling: 'MAR'
+  - type: typo
+    column: 'text'
+    typo_rate: 0.1
