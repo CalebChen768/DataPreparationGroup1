@@ -3,29 +3,35 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from missingvalue import MissingValueChecker
-from outlier import OutlierHandler
-from alignTransformer import AlignTransformer
-from sklearn.preprocessing import Normalizer, OneHotEncoder, StandardScaler, MinMaxScaler, FunctionTransformer
-from MissDropper import MissDropper
-from outofbounds import OutOfBoundsChecker
-from functools import partial
-
+from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
+from ErrorHandler import *
 
 # Create test data
 df = pd.DataFrame({
     "col_1": [1, 2, 4, np.nan, 5, 6, -7, 8, 9, 1000, 5], 
     "col_2": ["cat", "dog", None, "cat", "dog", "dog", "cat", "dog", "cat", "dog", "mice"],
+    "col_3": ["Y","N","Y","N","Y","N","Y","N","Y","N","Y"],
+    "col_4": [ "test I hey helo what calender insteresting",
+              "This game is interesting. I strongly recommend it.",
+              "This gmae is inteersting. I strongly recomend it.",
+              "I am a student",
+              "I am a student",
+              "My name is John",
+              "This is a test",
+              "What can I do for you",
+              "Haha, wonderful game",
+              "asdmko fndosfhjdn safijdpwhauih fidnafpii uhwafi nedwb",
+              "Do you like this game?"]
 })
 
 # Create a pipeline
 preprocessor = ColumnTransformer(
     transformers=[
         ("num", Pipeline([
-            ("missing_values", MissingValueChecker(data_type="numerical", strategy="mean")),
+            ("missing_values", MissingValueChecker(data_type="numerical", strategy="drop")),
             ("bound_constrain", OutOfBoundsChecker(lower_bound=0)),
             ("outliers", OutlierHandler(strategy="clip")),
-            ("normalizer", StandardScaler()),
+            ("normalizer", ScaleAdjust(method="standard")),
             ("align_index", AlignTransformer(original_index=df.index)),
         ]), ["col_1"]),
 
@@ -35,9 +41,25 @@ preprocessor = ColumnTransformer(
             ("align_index", AlignTransformer(original_index=df.index)),
             ("onehot",OneHotEncoder(categories=[list(set(df[i].unique())-{None, np.nan}) for i in ["col_2"]], handle_unknown="ignore"))
         ]), ["col_2"]),
+
+        ("cat2", Pipeline([
+            ("onehot",OneHotEncoder(categories=[list(set(df[i].unique())-{None, np.nan}) for i in ["col_3"]], handle_unknown="ignore"))
+        ]), ["col_3"]),
+        
+        ("text", Pipeline([
+            ("gibberish", GibberishDetector(method="ngram")),
+            ("align_index", AlignTransformer(original_index=df.index)),
+        ]), ["col_4"]),
     ],
     remainder="passthrough"
 )
+
+pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor)), validate=False)),
+    ("dropper", MissDropper()),
+])
+
 
 def to_dataframe(X, transformer, feature_names):
     """
@@ -63,7 +85,7 @@ def get_final_columns(column_transformer):
         if isOnehot:
             # OneHotEncoder
             for col in columns:
-                unique_categories = [list(set(df[i].unique())-{None, np.nan}) for i in ["col_2"]][0]
+                unique_categories = [list(set(df[i].unique())-{None, np.nan}) for i in [col]][0]
                 print("unique_categories", unique_categories)
                 generated_col_names = [f"{col}_{category}" for category in unique_categories]
                 final_columns.extend(generated_col_names)
@@ -75,12 +97,6 @@ def get_final_columns(column_transformer):
 
 
 
-pipeline = Pipeline([
-    ("preprocessor", preprocessor),
-    ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor)), validate=False)),
-    ("dropper", MissDropper()),
-
-])
 
 if __name__ == "__main__":
     print("============== Original Data ==============")

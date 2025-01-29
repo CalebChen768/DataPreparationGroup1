@@ -9,3 +9,4 @@ torch
 fasttext
 nltk
 requests
+textblob

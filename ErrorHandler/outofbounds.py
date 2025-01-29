@@ -82,7 +82,10 @@ class OutOfBoundsChecker(BaseEstimator, TransformerMixin):
                         UserWarning
                     )
                     X[mask] = None
-                    return X if X_columns is None else pd.DataFrame(X, columns=X_columns)
+                    # return X if X_columns is None else pd.DataFrame(X, columns=X_columns)
+                    X = X if X_columns is None else pd.DataFrame(X, columns=X_columns)
+                    X.dropna(axis=0, inplace=True)
+                    return X
                 elif self.default_behavior == "raise_error":
                     raise ValueError(f"{num_out_of_bounds} out-of-bounds values detected in data.")
 
