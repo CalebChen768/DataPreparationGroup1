@@ -36,7 +36,7 @@ def get_final_columns(column_transformer):
             print(columns)
             if len(columns) != 0:
                 for col in columns:
-                    unique_categories = [list(set(df[i].unique())-{None, np.nan}) for i in [col]][0]
+                    unique_categories = [list(set(A[i].unique())-{None, np.nan}) for i in [col]][0]
                     print("unique_categories", len(unique_categories))
                     generated_col_names = [f"{col}_{category}" for category in unique_categories]
                     final_columns.extend(generated_col_names)
@@ -58,31 +58,31 @@ def get_final_columns(column_transformer):
 
 if __name__ == "__main__":
     # without manually add errors
-    A = load_ratebeer("sampled_dataframe2.csv")
-    # with manually add errors
-    B = pd.read_csv("sampled_dataframe3.csv")
-    C = pd.read_csv("sampled_dataframe3.csv")
-
-    B['review/appearance'] = B['review/appearance'].astype(float)
-    B['review/aroma'] = B['review/aroma'].astype(float)
-    B['review/palate'] = B['review/palate'].astype(float)
-    B['review/taste'] = B['review/taste'].astype(float)
-    B['review/overall'] = B['review/overall'].astype(float)
-    B['beer/ABV'] = B['beer/ABV'].astype(float)
-
-    C['review/appearance'] = C['review/appearance'].astype(float)
-    C['review/aroma'] = C['review/aroma'].astype(float)
-    C['review/palate'] = C['review/palate'].astype(float)
-    C['review/taste'] = C['review/taste'].astype(float)
-    C['review/overall'] = C['review/overall'].astype(float)
-    C['beer/ABV'] = C['beer/ABV'].astype(float)
-
     # A = load_ratebeer("sampled_dataframe2.csv")
-    # B = A.copy()
-    # # add error
-    # error_adder = DataErrorAdder("config.yaml")
-    # B = error_adder.add_errors(B)
-    # C = B.copy()
+    # # with manually add errors
+    # B = pd.read_csv("sampled_dataframe3.csv")
+    # C = pd.read_csv("sampled_dataframe3.csv")
+
+    # B['review/appearance'] = B['review/appearance'].astype(float)
+    # B['review/aroma'] = B['review/aroma'].astype(float)
+    # B['review/palate'] = B['review/palate'].astype(float)
+    # B['review/taste'] = B['review/taste'].astype(float)
+    # B['review/overall'] = B['review/overall'].astype(float)
+    # B['beer/ABV'] = B['beer/ABV'].astype(float)
+
+    # C['review/appearance'] = C['review/appearance'].astype(float)
+    # C['review/aroma'] = C['review/aroma'].astype(float)
+    # C['review/palate'] = C['review/palate'].astype(float)
+    # C['review/taste'] = C['review/taste'].astype(float)
+    # C['review/overall'] = C['review/overall'].astype(float)
+    # C['beer/ABV'] = C['beer/ABV'].astype(float)
+
+    A = load_ratebeer("sampled_dataframe2.csv")
+    B = A.copy()
+    # add error
+    error_adder = DataErrorAdder("config.yaml")
+    B = error_adder.add_errors(B)
+    C = B.copy()
 
 
     num_data = 15000

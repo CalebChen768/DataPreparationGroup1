@@ -2,11 +2,11 @@
 errors:
   - type: missing_values
     column: 'review/appearance'
-    fraction: 0.1
+    fraction: 0.01
     missingness: 'MAR'
   - type: missing_values
     column: 'review/aroma'
-    fraction: 0.1
+    fraction: 0.01
     missingness: 'MAR'
   # - type: missing_values
   #   column: 'review/palate'
@@ -19,16 +19,16 @@ errors:
   
   - type: scaling
     column: 'review/palate'
-    fraction: 0.1
+    fraction: 0.01
     sampling: 'MAR'
   - type: scaling
     column: 'review/taste'
-    fraction: 0.1
+    fraction: 0.01
     sampling: 'MAR'
 
   - type: typo
     column: 'review/text'
-    typo_rate: 0.05
+    typo_rate: 0.001
     
   # - type: gibberish
   #   column: 'review/text'
