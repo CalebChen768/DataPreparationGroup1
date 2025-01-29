@@ -10,3 +10,5 @@ fasttext
 nltk
 requests
 textblob
+spacy
+spellchecker
