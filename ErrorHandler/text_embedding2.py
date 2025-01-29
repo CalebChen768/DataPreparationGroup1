@@ -9,18 +9,19 @@ import warnings
 class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
     def __init__(self, model_name='bert-base-uncased', pooling='masked_mean', 
                  max_length=256, batch_size=64, dynamic_padding=True,
-                 device=None, verbose=True):
+                 device=None, verbose=True, truncation_strategy='smart_head'):
         """
         Optimized BERT text embedding transformer for scikit-learn pipelines.
 
         Parameters:
         - model_name (str): HuggingFace model name/path
-        - pooling (str): ['cls', 'mean', 'max', 'masked_mean'] 
+        - pooling (str): ['cls', 'mean', 'max', 'masked_mean'], masked_mean is the best theoretically
         - max_length (int): Max sequence length (applied before dynamic padding)
         - batch_size (int): Adaptive batch size (auto-reduce on OOM)
         - dynamic_padding (bool): Enable smart padding per batch
         - device (str): Override auto device detection
         - verbose (bool): Enable progress logging
+        - truncation_strategy (str): ['smart_head', 'head_tail', 'head'], smart truncation strategy
         """
         self.model_name = model_name
         self.pooling = pooling
@@ -28,6 +29,7 @@ class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
         self.batch_size = batch_size
         self.dynamic_padding = dynamic_padding
         self.verbose = verbose
+        self.truncation_strategy = truncation_strategy
         
         # Device configuration
         self.device = self._detect_device(device)
@@ -51,6 +53,8 @@ class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
         """Lazy initialization of heavy components"""
         if self.tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+
+            self.actual_max_length = min(self.max_length, self.tokenizer.model_max_length)
             
         if self.model is None:
             self.model = AutoModel.from_pretrained(self.model_name).to(self.device)
@@ -63,6 +67,39 @@ class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
                 max_length=min(self.max_length, self.tokenizer.model_max_length)
             )
 
+    def _smart_truncate(self, text):
+        tokens = self.tokenizer.tokenize(text)
+        
+        if len(tokens) <= self.actual_max_length:
+            return text
+
+        if self.truncation_strategy == 'smart_head':
+            # 保留包含关键信号的开头部分
+            important_keywords = ['but', 'however', 'although', 'except']
+            sentences = text.split('.')
+            truncated = []
+            for sent in sentences:
+                if any(kw in sent.lower() for kw in important_keywords):
+                    break  # 遇到转折词停止截断
+                truncated.append(sent)
+                if len(self.tokenizer.tokenize('.'.join(truncated))) > self.actual_max_length:
+                    truncated.pop()  # 移除最后一句
+                    break
+            return '.'.join(truncated).strip()
+
+        elif self.truncation_strategy == 'head_tail':
+            # 首尾组合截断
+            head_len = self.actual_max_length // 2
+            tail_len = self.actual_max_length - head_len
+            head = tokens[:head_len]
+            tail = tokens[-tail_len:]
+            return self.tokenizer.convert_tokens_to_string(head + tail)
+
+        else:
+            # 默认头部截断
+            return self.tokenizer.convert_tokens_to_string(tokens[:self.actual_max_length])
+        
+        
     def _smart_batching(self, texts):
         """Sort texts by length for efficient padding"""
         tokenized = [self.tokenizer.tokenize(text) for text in texts]
@@ -111,27 +148,35 @@ class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
         text_column = X.columns[0]
         texts = X[text_column].astype(str).tolist()
         
+        # 应用智能截断预处理
+        processed_texts = [
+            self._smart_truncate(text) 
+            if len(self.tokenizer.tokenize(text)) > self.actual_max_length 
+            else text 
+            for text in tqdm(texts, desc="Truncating texts", disable=not self.verbose)
+        ]
+        
         # Sort texts for efficient batching
         if self.dynamic_padding:
-            texts = self._smart_batching(texts)
+            processed_texts = self._smart_batching(processed_texts)
             
         embeddings = []
         current_batch_size = self.batch_size
         
         with torch.inference_mode():
-            for i in tqdm(range(0, len(texts), current_batch_size),
+            for i in tqdm(range(0, len(processed_texts), current_batch_size),
                         desc="Processing batches",
                         disable=not self.verbose):
-                batch_texts = texts[i:i + current_batch_size]
+                batch_processed_texts = processed_texts[i:i + current_batch_size]
                 
                 try:
                     # Dynamic tokenization
                     if self.dynamic_padding:
-                        encoded = [self.tokenizer.encode(text, truncation=True) for text in batch_texts]
+                        encoded = [self.tokenizer.encode(text, truncation=True) for text in batch_processed_texts]
                         inputs = self.data_collator([{"input_ids": ids} for ids in encoded])
                     else:
                         inputs = self.tokenizer(
-                            batch_texts,
+                            batch_processed_texts,
                             return_tensors="pt",
                             truncation=True,
                             padding="max_length",
@@ -158,7 +203,7 @@ class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
 
         # Preserve original order
         if self.dynamic_padding:
-            reverse_indices = np.argsort(np.arange(len(texts)))
+            reverse_indices = np.argsort(np.arange(len(processed_texts)))
             embeddings = np.concatenate(embeddings)[reverse_indices]
         else:
             embeddings = np.concatenate(embeddings)
