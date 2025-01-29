@@ -49,8 +49,6 @@ class GibberishDetector(BaseEstimator, TransformerMixin):
             result = X.apply(self._detect_gibberish)
         else:
             raise TypeError("Input must be pandas DataFrame or Series")
-        print(result)
-        print(X)
         # Convert True to NaN
         X = X.where(~result, np.nan)  # Keep False values, replace True with NaN
         # X.dropna(axis=0, inplace=True)  
@@ -86,7 +84,7 @@ class GibberishDetector(BaseEstimator, TransformerMixin):
 
         entropy = -sum((count / total_chars) * math.log2(count / total_chars) for count in char_counts.values())
 
-        print(entropy < self.threshold)
+        # print(entropy < self.threshold)
         return entropy < self.threshold
 
     def _char_distribution_based(self, text):
@@ -113,7 +111,7 @@ class GibberishDetector(BaseEstimator, TransformerMixin):
         """
         if self.gibberish_detector is None:
             raise RuntimeError("n-gram model not loaded correctly, please check ngram_model_path")
-        print(self.gibberish_detector.is_gibberish(text))
+        # print(self.gibberish_detector.is_gibberish(text))
         return self.gibberish_detector.is_gibberish(text)
 
     def get_feature_names_out(self, X):
@@ -124,11 +122,11 @@ if __name__ == "__main__":
         "text": ["dfdfer fgerfow2e0d qsqskdsd djksdnfkff swq", "22 madhur old punjab pickle chennai", "I love this website", "Madhur study in a teacher"]
     })
 
-    print(df.shape)
+    # print(df.shape)
     from sklearn.compose import ColumnTransformer
 
     trans = ColumnTransformer([
         ("gibberish", GibberishDetector(method="entropy", threshold=3.5), "text")
     ])
 
-    print(trans.fit_transform(df))
+    # print(trans.fit_transform(df))
