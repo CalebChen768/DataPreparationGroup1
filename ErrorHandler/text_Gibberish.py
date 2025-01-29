@@ -6,6 +6,14 @@ import math
 from collections import Counter
 from gibberish_detector import detector
 
+import pandas as pd
+import fasttext
+import string
+import os
+import requests
+from sklearn.base import BaseEstimator, TransformerMixin
+from nltk.corpus import words
+import nltk
 
 class GibberishDetector(BaseEstimator, TransformerMixin):
     def __init__(self, method="entropy", threshold=2.5, custom_func=None, ngram_model_path=None):
@@ -116,7 +124,76 @@ class GibberishDetector(BaseEstimator, TransformerMixin):
 
     def get_feature_names_out(self, X):
         return X.columns
+
+
+class TwoStepGibberishDetector(BaseEstimator, TransformerMixin):
+    def __init__(self, columns=["text"], threshold=0.62, max_candidates=5):
+        nltk.download('words')
+        self.columns = columns
+        self.threshold = threshold
+        self.max_candidates = max_candidates
+        self.model_path = 'lid.176.bin'
+        self._download_model()
+        self.model_d = fasttext.load_model(self.model_path)
+        self.english_vocab = set(words.words())
+
+    def _download_model(self):
+        if not os.path.exists(self.model_path):
+            print(f"Model '{self.model_path}' not found. Downloading...")
+            url = 'https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin'
+            response = requests.get(url, stream=True)
+            with open(self.model_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=1024):
+                    f.write(chunk)
+            print(f"Model '{self.model_path}' downloaded successfully!")
+        else:
+            print(f"Model '{self.model_path}' already exists.")
+
+    def _clean_text(text):
     
+        text = text.lower()  
+        text = text.translate(str.maketrans('', '', string.punctuation)) 
+
+        return text
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        row_count = X.shape[0]
+        for column in self.columns:
+            not_en_index = []
+            col_index = X.columns.get_loc(column)
+            for i in range(0, row_count):
+                target = self._clean_text(X.iloc[i, col_index])
+                predictions = self.model_d.predict(target)
+                language = predictions[0][0].split('__label__')[1]
+                confidence = predictions[1][0]
+
+                if confidence < self.threshold:
+                    tokens = target.split()
+                    if len(tokens) < 7:
+                        word_count = 0
+                        for token in tokens:
+                            token = token.translate(str.maketrans('', '', string.punctuation))
+                            if token.lower() in self.english_vocab:
+                                word_count += 1
+                            if word_count > len(tokens) - word_count:
+                                language = "en"
+                            elif language == "en":
+                                language = "nonsense"
+                    elif language == "en":
+                        language = "nonsense"
+
+                if language != "en":
+                    not_en_index.append(i)
+            X[not_en_index][column] = np.nan
+
+        return X
+
+
+
+
 if __name__ == "__main__":
     df = pd.DataFrame({
         "text": ["dfdfer fgerfow2e0d qsqskdsd djksdnfkff swq", "22 madhur old punjab pickle chennai", "I love this website", "Madhur study in a teacher"]
