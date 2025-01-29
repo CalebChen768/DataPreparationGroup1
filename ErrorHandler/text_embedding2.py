@@ -7,7 +7,7 @@ from tqdm import tqdm
 import warnings
 
 class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
-    def __init__(self, model_name='bert-base-uncased', pooling='cls', 
+    def __init__(self, model_name='bert-base-uncased', pooling='masked_mean', 
                  max_length=256, batch_size=64, dynamic_padding=True,
                  device=None, verbose=True):
         """
