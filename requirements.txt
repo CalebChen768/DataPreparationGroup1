@@ -12,3 +12,4 @@ requests
 textblob
 spacy
 spellchecker
+gibberish-detector
