@@ -7,7 +7,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
 from ErrorHandler import *
 from data import load_ratebeer, DataErrorAdder
-
+# import tf-idf
+from sklearn.feature_extraction.text import TfidfVectorizer
+# import LinearRegression
+from sklearn.linear_model import LinearRegression
+# import RandomForestRegressor
+# import GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.metrics import accuracy_score
@@ -29,7 +36,7 @@ def get_final_columns(column_transformer):
         for transformer in pipeline:
             if isinstance(transformer, OneHotEncoder):
                 isOnehot = True
-            if isinstance(transformer, BERTEmbeddingTransformer):
+            if isinstance(transformer, BERTEmbeddingTransformer2):
                 isBert = True
         if isOnehot:
             # OneHotEncoder
@@ -43,9 +50,10 @@ def get_final_columns(column_transformer):
 
         elif isBert:
             # for BERT transformer, keep original column names
-            col = columns[0]
-            extended_columns = [f"{col}_{i}" for i in range(768)]
-            final_columns.extend(extended_columns)
+            if len(columns) != 0:
+                col = columns[0]
+                extended_columns = [f"{col}_{i}" for i in range(768)]
+                final_columns.extend(extended_columns)
         else:
             print("columns", columns)
             # for other transformers, keep original column names
@@ -85,7 +93,7 @@ if __name__ == "__main__":
     C = B.copy()
 
 
-    num_data = 15000
+    num_data = 5000
     A = A.head(num_data)
     B = B.head(num_data)
     C = C.head(num_data)
@@ -95,6 +103,7 @@ if __name__ == "__main__":
     categorical_cols = []
     text_cols = ["review/text"]
 
+    # text_cols = []
     # keep only the columns that are used
     A = A[[target_col] + numerical_cols + categorical_cols + text_cols]
     B = B[[target_col] + numerical_cols + categorical_cols + text_cols]
@@ -120,7 +129,8 @@ if __name__ == "__main__":
 
             ("text", Pipeline([
                 # ("gibberish", GibberishDetector(method="ngram")),
-                ("bert_embedding", BERTEmbeddingTransformer()),
+                ("bert_embedding", BERTEmbeddingTransformer2()),
+                # ("tf_idf", TfidfVectorizer()),
                 ("align_index", AlignTransformer(original_index=A.index)),
                 ("missing_text", MissingValueChecker(data_type="numerical", strategy="drop")),
                 ("align_index2", AlignTransformer(original_index=A.index)),
@@ -149,7 +159,8 @@ if __name__ == "__main__":
 
             ("text", Pipeline([
                 # ("gibberish", GibberishDetector(method="ngram")),
-                ("bert_embedding", BERTEmbeddingTransformer()),
+                ("bert_embedding", BERTEmbeddingTransformer2()),
+                # ("tf_idf", TfidfVectorizer()),
                 ("align_index", AlignTransformer(original_index=B.index)),
                 ("missing_text", MissingValueChecker(data_type="numerical", strategy="drop")),
                 ("align_index2", AlignTransformer(original_index=B.index)),
@@ -178,9 +189,10 @@ if __name__ == "__main__":
             ("text", Pipeline([
                 # ("gibberish", GibberishDetector(method="ngram")),
                 ("gibberish", TwoStepGibberishDetector()),
-                ("bert_embedding", BERTEmbeddingTransformer()),
+                ("bert_embedding", BERTEmbeddingTransformer2()),
+                # ("tf_idf", TfidfVectorizer()),
                 ("align_index", AlignTransformer(original_index=C.index)),
-                ("missing_text", MissingValueChecker(data_type="numerical", strategy="mean")),
+                ("missing_text", MissingValueChecker(data_type="numerical", strategy="most_common")),
                 ("align_index2", AlignTransformer(original_index=C.index)),
             ]), text_cols),
         ],
@@ -191,21 +203,21 @@ if __name__ == "__main__":
     # pipeline for A
     pipeline_A = Pipeline([
         ("preprocessor", preprocessor_A),
-        ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor_A)))),
+        ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X))),
         ("dropper", MissDropper()),
     ])
    
     # pipeline for B
     pipeline_B = Pipeline([
         ("preprocessor", preprocessor_B),
-        ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor_B)))),
+        ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X))),
         ("dropper", MissDropper()),
     ])
 
     # pipeline for C
     pipeline_C = Pipeline([
         ("preprocessor", preprocessor_C),
-        ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X, columns=get_final_columns(preprocessor_C)))),
+        ("to_df", FunctionTransformer(lambda X: pd.DataFrame(X))),
         ("dropper", MissDropper()),
     ])
 
@@ -219,6 +231,10 @@ if __name__ == "__main__":
     X_C = C.drop(columns=[target_col])
     y_C = C[target_col]
 
+    # X_A_train, X_A_test, y_A_train, y_A_test = train_test_split(X_A, y_A, test_size=0.2, random_state=42)
+    # X_B_train, X_B_test, y_B_train, y_B_test = train_test_split(X_B, y_B, test_size=0.2, random_state=42)
+    # X_C_train, X_C_test, y_C_train, y_C_test = train_test_split(X_C, y_C, test_size=0.2, random_state=42)
+
     print("==========A transform==========")
     X_A = pipeline_A.fit_transform(X_A)
     y_A = y_A.loc[X_A.index]
@@ -229,16 +245,60 @@ if __name__ == "__main__":
     X_C = pipeline_C.fit_transform(X_C)
     y_C = y_C.loc[X_C.index]
 
+    # print("==========A transform==========")
+    # X_A_train = pipeline_A.fit_transform(X_A_train)
+    # y_A_train = y_A_train.loc[X_A_train.index]
+    # X_A_test = pipeline_A.transform(X_A_test)
+    # y_A_test = y_A_test.loc[X_A_test.index]
+    # print("==========B transform==========")
+    # X_B_train = pipeline_B.fit_transform(X_B_train)
+    # y_B_train = y_B_train.loc[X_B_train.index]
+    # X_B_test = pipeline_B.transform(X_B_test)
+    # y_B_test = y_B_test.loc[X_B_test.index]
+    # print("==========C transform==========")
+    # X_C_train = pipeline_C.fit_transform(X_C_train)
+    # y_C_train = y_C_train.loc[X_C_train.index]
+    # X_C_test = pipeline_C.transform(X_C_test)
+    # y_C_test = y_C_test.loc[X_C_test.index]
+
+    # # reindex all
+    # X_A_train = X_A_train.reindex(X_A_train.index)
+    # y_A_train = y_A_train.reindex(y_A_train.index)
+    # X_A_test = X_A_test.reindex(X_A_test.index)
+    # y_A_test = y_A_test.reindex(y_A_test.index)
+
+    # X_B_train = X_B_train.reindex(X_B_train.index)
+    # y_B_train = y_B_train.reindex(y_B_train.index)
+    # X_B_test = X_B_test.reindex(X_B_test.index)
+    # y_B_test = y_B_test.reindex(y_B_test.index)
+
+    # X_C_train = X_C_train.reindex(X_C_train.index)
+    # y_C_train = y_C_train.reindex(y_C_train.index)
+    # X_C_test = X_C_test.reindex(X_C_test.index)
+    
+
+
+
+    # XYA  = pd.concat([X_A, y_A], axis=1)
+    # XYB  = pd.concat([X_B, y_B], axis=1)
+    # XYC  = pd.concat([X_C, y_C], axis=1)
+    # XYA.to_csv("XYA.csv", index=False)
+    # XYB.to_csv("XYB.csv", index=False)
+    # XYC.to_csv("XYC.csv", index=False)
+
     print("==========split dataset==========")
     
     X_A_train, X_A_test, y_A_train, y_A_test = train_test_split(X_A, y_A, test_size=0.2, random_state=42)
     X_B_train, X_B_test, y_B_train, y_B_test = train_test_split(X_B, y_B, test_size=0.2, random_state=42)
     X_C_train, X_C_test, y_C_train, y_C_test = train_test_split(X_C, y_C, test_size=0.2, random_state=42)
 
-    model_A = DecisionTreeRegressor(random_state=42)
-    model_B = DecisionTreeRegressor(random_state=42)
-    model_C = DecisionTreeRegressor(random_state=42)
+    # model_A = DecisionTreeRegressor(random_state=42)
+    # model_B = DecisionTreeRegressor(random_state=42)
+    # model_C = DecisionTreeRegressor(random_state=42)
     
+    model_A = RandomForestRegressor(random_state=42)
+    model_B = RandomForestRegressor(random_state=42)
+    model_C =  RandomForestRegressor(random_state=42)
     print("==========fit model==========")
     model_A.fit(X_A_train, y_A_train)
     model_B.fit(X_B_train, y_B_train)
