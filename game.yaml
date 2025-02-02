@@ -1,0 +1,25 @@
+errors:
+  - type: missing_values
+    column: 'price'
+    fraction: 0.1
+    missingness: 'MAR'
+
+  - type: missing_values
+    column: 'helpful_vote'
+    fraction: 0.1
+    missingness: 'MAR'
+
+  - type: scaling
+    column: 'average_rating'
+    fraction: 0.1
+    sampling: 'MAR'
+
+  - type: scaling
+    column: 'rating_number'
+    fraction: 0.1
+    sampling: 'MAR'
+
+
+  - type: typo
+    column: 'title'
+    typo_rate: 0.05

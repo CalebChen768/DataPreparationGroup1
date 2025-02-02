@@ -6,3 +6,10 @@ jenga
 setuptools
 transformers
 torch
+fasttext
+nltk
+requests
+textblob
+spacy
+spellchecker
+gibberish-detector
