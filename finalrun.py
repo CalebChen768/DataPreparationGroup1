@@ -15,6 +15,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from sklearn.dummy import DummyClassifier, DummyRegressor
+from sklearn.model_selection import GridSearchCV
 
 def get_final_columns(column_transformer):
     """
@@ -288,6 +289,21 @@ if __name__ == "__main__":
     # model_B = DecisionTreeRegressor(random_state=42)
     # model_C = DecisionTreeRegressor(random_state=42)
     
+    # param_grid = {
+    #     'n_estimators': [100, 200],
+    #     'max_depth': [10, 20],
+    #     'min_samples_split': [2, 5],
+    #     'min_samples_leaf': [1, 2]
+    # }
+
+    # # Create base model
+    # rf_base = RandomForestRegressor(random_state=42, n_jobs=-1)
+
+    # # Grid search for each dataset
+    # model_A = GridSearchCV(rf_base, param_grid, cv=5, n_jobs=-1)
+    # model_B = GridSearchCV(rf_base, param_grid, cv=5, n_jobs=-1)
+    # model_C = GridSearchCV(rf_base, param_grid, cv=5, n_jobs=-1)
+
     model_A = RandomForestRegressor(random_state=42, n_jobs=-1)
     model_B = RandomForestRegressor(random_state=42, n_jobs=-1)
     model_C = RandomForestRegressor(random_state=42, n_jobs=-1)
