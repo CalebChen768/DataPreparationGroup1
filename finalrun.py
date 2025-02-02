@@ -29,7 +29,7 @@ def get_final_columns(column_transformer):
         for transformer in pipeline:
             if isinstance(transformer, OneHotEncoder):
                 isOnehot = True
-            if isinstance(transformer, BERTEmbeddingTransformer):
+            if isinstance(transformer, BERTEmbeddingTransformer2):
                 isBert = True
         if isOnehot:
             # OneHotEncoder
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
             ("text", Pipeline([
                 # ("gibberish", GibberishDetector(method="ngram")),
-                ("bert_embedding", BERTEmbeddingTransformer()),
+                ("bert_embedding", BERTEmbeddingTransformer2()),
                 ("align_index", AlignTransformer(original_index=A.index)),
                 ("missing_text", MissingValueChecker(data_type="numerical", strategy="drop")),
                 ("align_index2", AlignTransformer(original_index=A.index)),
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
             ("text", Pipeline([
                 # ("gibberish", GibberishDetector(method="ngram")),
-                ("bert_embedding", BERTEmbeddingTransformer()),
+                ("bert_embedding", BERTEmbeddingTransformer2()),
                 ("align_index", AlignTransformer(original_index=B.index)),
                 ("missing_text", MissingValueChecker(data_type="numerical", strategy="drop")),
                 ("align_index2", AlignTransformer(original_index=B.index)),
@@ -178,7 +178,7 @@ if __name__ == "__main__":
             ("text", Pipeline([
                 # ("gibberish", GibberishDetector(method="ngram")),
                 ("gibberish", TwoStepGibberishDetector()),
-                ("bert_embedding", BERTEmbeddingTransformer()),
+                ("bert_embedding", BERTEmbeddingTransformer2()),
                 ("align_index", AlignTransformer(original_index=C.index)),
                 ("missing_text", MissingValueChecker(data_type="numerical", strategy="mean")),
                 ("align_index2", AlignTransformer(original_index=C.index)),

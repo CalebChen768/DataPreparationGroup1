@@ -1,0 +1,40 @@
+columns:
+  numerical:
+    cols: ["review/appearance", "review/aroma", "review/palate", "review/taste"]
+    pipeline:
+      - name: MissingValueChecker
+        params:
+          data_type: numerical
+          strategy: mean
+      - name: OutOfBoundsChecker
+        params:
+          lower_bound: 0
+          upper_bound: 10
+      - name: OutlierHandler
+        params:
+          strategy: clip
+      - name: ScaleAdjust
+        params:
+          method: standard
+
+  categorical:
+    cols: ["gender", "department"]
+    pipeline:
+      - name: MissingValueChecker
+        params:
+          data_type: categorical
+          strategy: most_common
+      - name: OneHotEncoder
+        params:
+          categories: "unique"
+          handle_unknown: ignore
+
+  text:
+    cols: ["review"]
+    pipeline:
+      - name: TwoStepGibberishDetector
+      - name: BERTEmbeddingTransformer
+      - name: MissingValueChecker
+        params:
+          data_type: numerical
+          strategy: mean
