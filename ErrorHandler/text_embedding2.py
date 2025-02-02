@@ -148,7 +148,6 @@ class BERTEmbeddingTransformer2(BaseEstimator, TransformerMixin):
         text_column = X.columns[0]
         texts = X[text_column].astype(str).tolist()
         
-        # 应用智能截断预处理
         processed_texts = [
             self._smart_truncate(text) 
             if len(self.tokenizer.tokenize(text)) > self.actual_max_length 

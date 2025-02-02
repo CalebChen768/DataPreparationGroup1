@@ -3,7 +3,8 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import spacy
-from spellchecker import SpellChecker
+# from spellchecker import SpellChecker
+from textblob import TextBlob
 import torch
 
 class GrammarCorrector(BaseEstimator, TransformerMixin):
@@ -22,7 +23,7 @@ class GrammarCorrector(BaseEstimator, TransformerMixin):
         
         self.grammar_model = None
         self.tokenizer = None
-        self.spell = None
+        # self.spell = None
         self.nlp = None
         self.sent_nlp = None
 
@@ -38,11 +39,11 @@ class GrammarCorrector(BaseEstimator, TransformerMixin):
         if self.tokenizer is None:
             self.tokenizer = T5Tokenizer.from_pretrained(self.model_name)
             
-        if self.spell_check and self.spell is None:
-            self.spell = SpellChecker()
+        # if self.spell_check and self.spell is None:
+        #     self.spell = SpellChecker()
             
         if self.nlp is None:
-            self.nlp = spacy.load("en_core_web_md")
+            # self.nlp = spacy.load("en_core_web_md")
             self.sent_nlp = spacy.load("en_core_web_md", disable=["parser", "tagger", "ner"])
 
     def fit(self, X, y=None):
@@ -68,12 +69,13 @@ class GrammarCorrector(BaseEstimator, TransformerMixin):
             return text # Return original text
 
     def _correct_spelling(self, text):
-        words = [token.text for token in self.sent_nlp(text)]
-        corrected = [
-            self.spell.correction(word) if self.spell.correction(word) is not None else word
-            for word in words
-        ]
-        return ' '.join(corrected)
+        # words = [token.text for token in self.sent_nlp(text)]
+        # corrected = [
+        #     self.spell.correction(word) if self.spell.correction(word) is not None else word
+        #     for word in words
+        # ]
+        # return ' '.join(corrected)
+        return str(TextBlob(text).correct())
 
     def _correct_grammar(self, text):
         inputs = self.tokenizer(
