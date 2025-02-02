@@ -43,7 +43,7 @@ class GrammarCorrector(BaseEstimator, TransformerMixin):
         #     self.spell = SpellChecker()
             
         if self.nlp is None:
-            # self.nlp = spacy.load("en_core_web_md")
+            self.nlp = spacy.load("en_core_web_md")
             self.sent_nlp = spacy.load("en_core_web_md", disable=["parser", "tagger", "ner"])
 
     def fit(self, X, y=None):
