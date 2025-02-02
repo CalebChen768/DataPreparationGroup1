@@ -1,7 +1,7 @@
 datasets
 pandas
 scikit-learn
-numpy
+numpy<2.0.0
 jenga 
 setuptools
 transformers

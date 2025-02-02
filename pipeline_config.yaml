@@ -18,7 +18,7 @@ columns:
           method: standard
 
   categorical:
-    cols: ["gender", "department"]
+    cols: []
     pipeline:
       - name: MissingValueChecker
         params:
@@ -26,11 +26,10 @@ columns:
           strategy: most_common
       - name: OneHotEncoder
         params:
-          categories: "unique"
           handle_unknown: ignore
 
   text:
-    cols: ["review"]
+    cols: ["review/text"]
     pipeline:
       - name: TwoStepGibberishDetector
       - name: BERTEmbeddingTransformer

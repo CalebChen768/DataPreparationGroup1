@@ -7,7 +7,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import FunctionTransformer
 
 from ErrorHandler import *
-
+from data import load_ratebeer
 # === 定义 Pipeline 生成器类 ===
 class PipelineBuilder:
     
@@ -56,11 +56,11 @@ class PipelineBuilder:
                 if name in self.transformers:
                     steps.append((name.lower(), self.transformers[name](**params)))
             
-            if cols in {'numerical', 'categorical'}:
+            if col_type in {'numerical', 'categorical'}:
                 steps.append(("aligner", AlignTransformer(original_index=self.df.index)))
 
-            elif cols == 'text':
-                for i in len(steps):
+            elif col_type == 'text':
+                for i in range(len(steps)):
                     if steps[i][0] == 'missing_text':
                         steps.insert(i, ("aligner", AlignTransformer(original_index=self.df.index)))
                         break
@@ -84,7 +84,8 @@ class PipelineBuilder:
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("sampled_dataframe2.csv")
+    df = load_ratebeer("sampled_dataframe2.csv")
+    df = df.head(100)
     pipeline_builder = PipelineBuilder("pipeline_config.yaml", df)
     pipeline = pipeline_builder.get_pipeline()
     pipeline.fit(df)
